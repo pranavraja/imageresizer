@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/gorilla/mux"
 	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
@@ -68,8 +67,6 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/", ResizeHandler).Methods("GET")
-	http.Handle("/", r)
+	http.HandleFunc("/", ResizeHandler)
 	http.ListenAndServe(":8080", nil)
 }
