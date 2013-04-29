@@ -30,7 +30,7 @@ func resizeAlgorithmFromString(algorithm string) resize.InterpolationFunction {
 	panic("Control should never reach here")
 }
 
-func resizedImageFromUrl(url string, resizedWidth int, algorithm string) (resizedImage image.Image, err error) {
+func resizedImageFromUrl(url string, resizedWidth int, resizedHeight int, algorithm string) (resizedImage image.Image, err error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return
@@ -43,7 +43,7 @@ func resizedImageFromUrl(url string, resizedWidth int, algorithm string) (resize
 	if img == nil {
 		return nil, errors.New("No image could be decoded from " + url)
 	}
-	resizedImage = resize.Resize(uint(resizedWidth), 0, img, resizeAlgorithmFromString(algorithm))
+	resizedImage = resize.Resize(uint(resizedWidth), uint(resizedHeight), img, resizeAlgorithmFromString(algorithm))
 	return
 }
 
@@ -53,12 +53,9 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No source URL provided", http.StatusBadRequest)
 		return
 	}
-	width, err := strconv.Atoi(r.FormValue("width"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	img, err := resizedImageFromUrl(source, width, r.FormValue("algorithm"))
+	width, _ := strconv.Atoi(r.FormValue("width"))
+	height, _ := strconv.Atoi(r.FormValue("height"))
+	img, err := resizedImageFromUrl(source, width, height, r.FormValue("algorithm"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
