@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"github.com/nfnt/resize"
+	"image"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -30,17 +32,28 @@ func resizeAlgorithmFromString(algorithm string) resize.InterpolationFunction {
 	panic("Control should never reach here")
 }
 
-func resizeAndPipe(destination io.Writer, source io.ReadCloser, resizedWidth int, resizedHeight int, algorithm string) error {
-	defer source.Close()
-	img, err := jpeg.Decode(source)
-	if err != nil {
-		return err
+func decodeImage(source io.Reader, contentType string) (decoded image.Image, err error) {
+	switch contentType {
+	case "image/jpeg":
+		decoded, err = jpeg.Decode(source)
+	case "image/png":
+		decoded, err = png.Decode(source)
+	default:
+		err = errors.New("Unsupported content type: " + contentType)
 	}
-	if img == nil {
-		return errors.New("Source image couldn't be decoded")
+	return
+}
+
+func encodeImage(destination io.Writer, img image.Image, contentType string) (err error) {
+	switch contentType {
+	case "image/jpeg":
+		return jpeg.Encode(destination, img, &jpeg.Options{Quality: 100})
+	case "image/png":
+		return png.Encode(destination, img)
+	default:
+		err = errors.New("Unsupported content type: " + contentType)
 	}
-	resizedImage := resize.Resize(uint(resizedWidth), uint(resizedHeight), img, resizeAlgorithmFromString(algorithm))
-	return jpeg.Encode(destination, resizedImage, nil)
+	return
 }
 
 func ResizeHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,10 +66,22 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	height, _ := strconv.Atoi(r.FormValue("height"))
 	resp, err := http.Get(source)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	img, err := decodeImage(resp.Body, resp.Header.Get("Content-Type"))
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = resizeAndPipe(w, resp.Body, width, height, r.FormValue("algorithm"))
+	if img == nil {
+		http.Error(w, "Could not decode image from URL "+source, http.StatusInternalServerError)
+		return
+	}
+	algorithm := r.FormValue("algorithm")
+	resizedImage := resize.Resize(uint(width), uint(height), img, resizeAlgorithmFromString(algorithm))
+	err = encodeImage(w, resizedImage, resp.Header.Get("Content-Type"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
