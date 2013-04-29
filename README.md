@@ -1,6 +1,6 @@
 # Summary
 
-A simple JPEG image resizer service in Go. Uses [https://github.com/nfnt/resize](http://github.com/nfnt/resize). No caching (you could use a CDN in front of this for production).
+A simple image resizer service in Go. Supports JPEG and PNG, and uses [https://github.com/nfnt/resize](http://github.com/nfnt/resize). No caching (you could use a CDN in front of this for production).
 
 # Build
 
