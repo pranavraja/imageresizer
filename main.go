@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"github.com/nfnt/resize"
-	"image"
 	"image/jpeg"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"strconv"
@@ -30,21 +30,17 @@ func resizeAlgorithmFromString(algorithm string) resize.InterpolationFunction {
 	panic("Control should never reach here")
 }
 
-func resizedImageFromUrl(url string, resizedWidth int, resizedHeight int, algorithm string) (resizedImage image.Image, err error) {
-	resp, err := http.Get(url)
+func resizeAndPipe(destination io.Writer, source io.ReadCloser, resizedWidth int, resizedHeight int, algorithm string) error {
+	defer source.Close()
+	img, err := jpeg.Decode(source)
 	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-	img, err := jpeg.Decode(resp.Body)
-	if err != nil {
-		return
+		return err
 	}
 	if img == nil {
-		return nil, errors.New("No image could be decoded from " + url)
+		return errors.New("Source image couldn't be decoded")
 	}
-	resizedImage = resize.Resize(uint(resizedWidth), uint(resizedHeight), img, resizeAlgorithmFromString(algorithm))
-	return
+	resizedImage := resize.Resize(uint(resizedWidth), uint(resizedHeight), img, resizeAlgorithmFromString(algorithm))
+	return jpeg.Encode(destination, resizedImage, nil)
 }
 
 func ResizeHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,12 +51,16 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	width, _ := strconv.Atoi(r.FormValue("width"))
 	height, _ := strconv.Atoi(r.FormValue("height"))
-	img, err := resizedImageFromUrl(source, width, height, r.FormValue("algorithm"))
+	resp, err := http.Get(source)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	jpeg.Encode(w, img, nil)
+	err = resizeAndPipe(w, resp.Body, width, height, r.FormValue("algorithm"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {
