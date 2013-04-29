@@ -8,7 +8,7 @@ A simple image resizer service in Go. Supports JPEG and PNG, and uses [https://g
 
 # Run
 
-`./resizer`
+`./imageresizer`
 
 # Usage
 
