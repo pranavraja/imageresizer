@@ -47,7 +47,7 @@ func decodeImage(source io.Reader, contentType string) (decoded image.Image, err
 func encodeImage(destination io.Writer, img image.Image, contentType string) (err error) {
 	switch contentType {
 	case "image/jpeg":
-		return jpeg.Encode(destination, img, &jpeg.Options{Quality: 100})
+		return jpeg.Encode(destination, img, nil)
 	case "image/png":
 		return png.Encode(destination, img)
 	default:
