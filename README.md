@@ -2,13 +2,11 @@
 
 A simple image resizer service in Go. Supports JPEG and PNG, and uses [https://github.com/nfnt/resize](http://github.com/nfnt/resize). No caching (you could use a CDN in front of this for production).
 
-# Build
+`go get github.com/pranavraja/imageresizer`
 
-`go get && go install`
+# Starting the server
 
-# Run
-
-`./imageresizer`
+Assuming `$GOPATH/bin` is in your `$PATH`, just run `imageresizer`. The process will start in the foreground, to run in production, use something like upstart to daemonize the process.
 
 # Usage
 
@@ -27,6 +25,3 @@ You may also pass in `algorithm` as an additional query string parameter, the fo
 
     ¯\_(ツ)_/¯
 
-# Known issues
-
-- Progressive JPEG support is only available in Go 1.1
