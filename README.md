@@ -21,6 +21,8 @@ You may also pass in `algorithm` as an additional query string parameter, the fo
 - `lanczos2`
 - `lanczos3`
 
+The server uses `net/http/pprof`, so you can use [http://localhost:8080/debug/pprof](http://localhost:8080/debug/pprof) to inspect the current running goroutines and stack.
+
 # Test
 
     ¯\_(ツ)_/¯
