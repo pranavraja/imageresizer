@@ -82,7 +82,8 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
-	img, err := decodeImage(resp.Body, resp.Header.Get("Content-Type"))
+	remoteContentType := resp.Header.Get("Content-Type")
+	img, err := decodeImage(resp.Body, remoteContentType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -93,7 +94,11 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	algorithm := r.FormValue("algorithm")
 	resizedImage := resize.Resize(uint(width), uint(height), img, resizeAlgorithmFromString(algorithm))
-	err = encodeImage(w, resizedImage, resp.Header.Get("Content-Type"))
+	w.Header().Set("Content-Type", remoteContentType)
+	w.Header().Set("ETag", resp.Header.Get("ETag"))
+	w.Header().Set("Cache-Control", resp.Header.Get("Cache-Control"))
+	w.Header().Set("Expires", resp.Header.Get("Expires"))
+	err = encodeImage(w, resizedImage, remoteContentType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
