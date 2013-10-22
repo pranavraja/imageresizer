@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -10,7 +9,20 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"strconv"
+	"time"
+
+	"github.com/nfnt/resize"
 )
+
+var timeoutClient *http.Client
+
+func init() {
+	timeoutClient = &http.Client{
+		Transport: &http.Transport{
+			ResponseHeaderTimeout: 5 * time.Second,
+		},
+	}
+}
 
 func resizeAlgorithmFromString(algorithm string) resize.InterpolationFunction {
 	switch algorithm {
@@ -64,7 +76,7 @@ func ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	width, _ := strconv.Atoi(r.FormValue("width"))
 	height, _ := strconv.Atoi(r.FormValue("height"))
-	resp, err := http.Get(source)
+	resp, err := timeoutClient.Get(source)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
